@@ -18,6 +18,8 @@ class Router
 
 	public function getRouteByRule(string $path, string $method): array | bool
 	{
+		$method = strtoupper($method);
+		
 		foreach ($this->routes as $route) {
 			if (!empty(preg_match($route->getPath(), $path, $matches)) && $route->getMethod() == $method) return ['route' => $route, 'matches' => array_unique($matches)];
 		}
