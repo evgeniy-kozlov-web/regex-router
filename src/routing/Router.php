@@ -11,62 +11,30 @@ class Router
 		return $this->routes;
 	}
 
-	public function getPaths(): array
+	public function getRoute(string $slug): Route | bool
 	{
-		$paths = [];
-
-		foreach ($this->routes as $route) {
-			$paths[] = $route->getPath();
-		}
-
-		return $paths;
+		return $this->routes[$slug] ?? false;
 	}
 
-	public function getRoute(string $slug): Route
-	{
-		if (!array_key_exists($slug, $this->routes)) throw new \app\exceptions\SlugIsNotExistsException();
-
-		return $this->routes[$slug];
-	}
-
-	public function getRouteByPath(string $path): array
+	public function getRouteByRule(string $path, string $method): array | bool
 	{
 		foreach ($this->routes as $route) {
-			if (!empty(preg_match($route->getPath(), $path, $matches))) return ['route' => $route, 'matches' => array_unique($matches)];
+			if (!empty(preg_match($route->getPath(), $path, $matches)) && $route->getMethod() == $method) return ['route' => $route, 'matches' => array_unique($matches)];
 		}
 
-		throw new \app\exceptions\PathIsNotExistsException();
+		return false;
 	}
 
 	public function getCurrentRoute(): array | bool
 	{
-		if (!$this->check()) return false;
-
-		return $this->getRouteByPath($_SERVER['REQUEST_URI']);
-	}
-
-	public function check(): bool
-	{
-		$path = $_SERVER['REQUEST_URI'];
-
-		try {
-			$route = $this->getRouteByPath($path)['route'];
-		} catch (\app\exceptions\PathIsNotExistsException $e) {
-			return false;
-		}
-
-		$method = $route->getMethod();
-
-		return $_SERVER['REQUEST_METHOD'] === $method;
+		return $this->getRouteByRule($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);
 	}
 
 	public function addRoute(Route $route): Router
 	{
 		if (array_key_exists($route->getSlug(), $this->routes)) throw new \app\exceptions\SlugIsAlreadyExistsException();
 
-		$paths = $this->getPaths();
-
-		if (in_array($route->getPath(), $paths)) throw new \app\exceptions\PathIsAlreadyExistsException();
+		if ($this->getRouteByRule($route->getPath(), $route->getMethod())) throw new \app\exceptions\RuleIsAlreadyExistsException();
 
 		$this->routes[$route->getSlug()] = $route;
 
