@@ -38,7 +38,7 @@ class Router
 		throw new \app\exceptions\PathIsNotExistsException();
 	}
 
-	public function getCurrentRoute(): Route | bool
+	public function getCurrentRoute(): array | bool
 	{
 		if (!$this->check()) return false;
 
