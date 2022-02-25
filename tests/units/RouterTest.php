@@ -13,11 +13,6 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 		$this->router = new Router();
 	}
 
-	public function testItIsDefaultByEmpty()
-	{
-		$this->assertEmpty($this->router->getRoutes());
-	}
-
 	public function testItCanAddRoutes()
 	{
 		$this->router->addRoute(new Route('GET', '/\/about/', 'test', 'about_us'))->addRoute(new Route('GET', '/\/contacts/', 'contacts', 'contacts'));
@@ -36,52 +31,47 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 		$this->assertTrue($route->equals($this->router->getRoute('about_us')));
 	}
 
-	public function testItReturnsValidPaths()
-	{
-		$this->assertEquals(
-			[
-				'/\/about/'
-			],
-			$this->router->addRoute(new Route('GET', '/\/about/', 'about', 'about_us'))->getPaths()
-		);
-	}
-
-	public function validPathsProvider()
-	{
-		return array(
-			[
-				new Route('GET', '/\/about/', 'about', 'about_us'),
-				'/about'
-			],
-			[
-				new Route('GET', '/[\d*]/', 'decimals', 'decimals'),
-				'123123123'
-			],
-			[
-				new Route('GET', '/[\w+]/', 'letters', 'letters'),
-				'test_test'
-			],
-			[
-				new Route('GET', '/[a-z*]/i', 'register', 'register'),
-				'testTest'
-			],
-		);
-	}
-
-	/**
-	 * @dataProvider validPathsProvider
-	 */
-	public function testItReturnsRouteByPath(Route $route, string $path)
-	{
-		$this->assertTrue($route->equals($this->router->addRoute($route)->getRouteByPath($path)['route']));
-	}
-
-	public function validPathsProviderWithMatches()
+	public function validRulesProvider()
 	{
 		return array(
 			[
 				new Route('GET', '/\/about/', 'about', 'about_us'),
 				'/about',
+				'GET'
+			],
+			[
+				new Route('GET', '/[\d*]/', 'decimals', 'decimals'),
+				'123123123',
+				'GET'
+			],
+			[
+				new Route('GET', '/[\w+]/', 'letters', 'letters'),
+				'test_test',
+				'GET'
+			],
+			[
+				new Route('GET', '/[a-z*]/i', 'register', 'register'),
+				'testTest',
+				'GET'
+			],
+		);
+	}
+
+	/**
+	 * @dataProvider validRulesProvider
+	 */
+	public function testItReturnsRouteByRule(Route $route, string $path, string $method)
+	{
+		$this->assertTrue($route->equals($this->router->addRoute($route)->getRouteByRule($path, $method)['route']));
+	}
+
+	public function validRulesProviderWithMatches()
+	{
+		return array(
+			[
+				new Route('GET', '/\/about/', 'about', 'about_us'),
+				'/about',
+				'GET',
 				[
 					'/about'
 				]
@@ -89,6 +79,7 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 			[
 				new Route('GET', '/([\d*]+)/', 'decimals', 'decimals'),
 				'123123123',
+				'GET',
 				[
 					'123123123'
 				]
@@ -96,6 +87,7 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 			[
 				new Route('GET', '/([\w+]+)/', 'letters', 'letters'),
 				'test_test',
+				'GET',
 				[
 					'test_test'
 				]
@@ -103,6 +95,7 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 			[
 				new Route('GET', '/([a-z]+)/i', 'register', 'register'),
 				'testTest',
+				'GET',
 				[
 					'testTest'
 				]
@@ -111,46 +104,48 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 	}
 
 	/**
-	 * @dataProvider validPathsProviderWithMatches
+	 * @dataProvider validRulesProviderWithMatches
 	 */
-	public function testItReturnsMatchesByPath(Route $route, string $path, array $matches)
+	public function testItReturnsMatchesByRule(Route $route, string $path, string $method, array $matches)
 	{
 		$this->assertEquals(
 			$matches,
-			$this->router->addRoute($route)->getRouteByPath($path)['matches']
+			$this->router->addRoute($route)->getRouteByRule($path, $method)['matches']
 		);
 	}
 
-	public function invalidPathsProvider()
+	public function invalidRulesProvider()
 	{
 		return array(
 			[
 				new Route('GET', '/\/about/', 'about', 'about_us'),
-				'/not_about'
+				'/not_about',
+				'GET'
 			],
 			[
 				new Route('GET', '/[\d*]/', 'decimals', 'decimals'),
-				'test'
+				'test',
+				'GET'
 			],
 			[
 				new Route('GET', '/[\w+]/', 'letters', 'letters'),
-				'----'
+				'----',
+				'GET'
 			],
 			[
 				new Route('GET', '/[a-z*]/i', 'register', 'register'),
-				'123'
+				'123',
+				'GET'
 			],
 		);
 	}
 
 	/**
-	 * @dataProvider invalidPathsProvider
+	 * @dataProvider invalidRulesProvider
 	 */
-	public function testItThrowsPathIsNotExistsExceptionIfPathIsNotExists(Route $route, string $path)
+	public function testItReturnsFalseIfRuleIsNotExists(Route $route, string $path, string $method)
 	{
-		$this->expectException(\app\exceptions\PathIsNotExistsException::class);
-
-		$this->router->addRoute($route)->getRouteByPath($path);
+		$this->assertFalse($this->router->addRoute($route)->getRouteByRule($path, $method));
 	}
 
 	public function testItThrowsSlugIsExistsExceptionIfSlugIsRepeats()
@@ -160,17 +155,15 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 		$this->router->addRoute(new Route('GET', '/\/about/', 'test', 'about_us'))->addRoute(new Route('GET', '/\/about/', 'test', 'about_us'));
 	}
 
-	public function testItThrowsPathIsExistsExceptionIfPathIsRepeats()
+	public function testItThrowsRuleIsExistsExceptionIfRuleIsRepeats()
 	{
-		$this->expectException(\app\exceptions\PathIsAlreadyExistsException::class);
+		$this->expectException(\app\exceptions\RuleIsAlreadyExistsException::class);
 
 		$this->router->addRoute(new Route('GET', '/\/about/', 'test', 'about_us'))->addRoute(new Route('GET', '/\/about/', 'test', 'not_about_us'));
 	}
 
-	public function testItThrowsSlugIsNotExistsExceptionIfSlugIsNotExists()
+	public function testItReturnsFalseIfSlugIsNotExists()
 	{
-		$this->expectException(\app\exceptions\SlugIsNotExistsException::class);
-
-		$this->router->getRoute('test');
+		$this->assertFalse($this->router->getRoute('test'));
 	}
 }
