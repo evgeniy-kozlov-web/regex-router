@@ -62,7 +62,7 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testItReturnsRouteByRule(Route $route, string $path, string $method)
 	{
-		$this->assertTrue($route->equals($this->router->addRoute($route)->getRouteByRule($path, $method)['route']));
+		$this->assertTrue($route->equals($this->router->addRoute($route)->getRouteAndMatchesByRule($path, $method)['route']));
 	}
 
 	public function validRulesProviderWithMatches()
@@ -110,7 +110,7 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 	{
 		$this->assertEquals(
 			$matches,
-			$this->router->addRoute($route)->getRouteByRule($path, $method)['matches']
+			$this->router->addRoute($route)->getRouteAndMatchesByRule($path, $method)['matches']
 		);
 	}
 
@@ -145,7 +145,7 @@ class RouterTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testItReturnsFalseIfRuleIsNotExists(Route $route, string $path, string $method)
 	{
-		$this->assertFalse($this->router->addRoute($route)->getRouteByRule($path, $method));
+		$this->assertFalse($this->router->addRoute($route)->getRouteAndMatchesByRule($path, $method));
 	}
 
 	public function testItThrowsSlugIsExistsExceptionIfSlugIsRepeats()
